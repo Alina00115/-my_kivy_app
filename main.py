@@ -529,10 +529,11 @@ class ChatScreen(Screen):
             color=get_color_from_hex('#888888')
         )
         friends_panel.add_widget(lbl_title)
-        self.friends_list = BoxLayout(orientation='vertical', spacing=dp(2), size_hint_y=None)      
 
+        # 好友列表容器
         self.friends_list = BoxLayout(orientation='vertical', spacing=dp(2), size_hint_y=None)
         self.friends_list.bind(minimum_height=self.friends_list.setter('height'))
+
         friends_scroll = ScrollView()
         friends_scroll.add_widget(self.friends_list)
         friends_panel.add_widget(friends_scroll)
