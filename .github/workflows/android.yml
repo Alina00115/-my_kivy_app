@@ -1,0 +1,88 @@
+name: Build Kivy APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      # 【核心修复点】添加以下参数，告诉 GitHub 彻底忽略任何本地恶意的或错误的子模块历史，防止收尾时崩溃
+      with:
+        submodules: false
+        persist-credentials: false
+
+    - name: Clean up broken local cache repositories
+      run: |
+        # 强力粉碎任何残留的本地旧缓存，腾出干净的空间
+        rm -rf .buildozer/
+        rm -rf bin/
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          git \
+          ffmpeg \
+          libsdl2-dev \
+          libsdl2-image-dev \
+          libsdl2-mixer-dev \
+          libsdl2-ttf-dev \
+          libportmidi-dev \
+          libswscale-dev \
+          libavformat-dev \
+          libavcodec-dev \
+          zlib1g-dev \
+          libunwind-dev \
+          libgstreamer1.0-dev \
+          gstreamer1.0-plugins-base \
+          gstreamer1.0-plugins-good \
+          libsqlite3-dev \
+          sqlite3 \
+          bzip2 \
+          libbz2-dev \
+          libssl-dev \
+          openssl \
+          libgdbm-dev \
+          libgdbm-compat-dev \
+          liblzma-dev \
+          libreadline-dev \
+          libncursesw5-dev \
+          libffi-dev \
+          uuid-dev \
+          libgconf-2-4 \
+          libxdg-basedir1
+
+    - name: Install Java (JDK 17)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Install Buildozer and Cython
+      run: |
+        pip install --upgrade pip
+        pip install buildozer "cython<3.0.0" virtualenv
+
+    - name: Build with Buildozer
+      run: |
+        buildozer android debug
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      # 【防爆机制】即使前面有任何非编译性的警告或清理报错，也强制执行上传 APK
+      if: always()
+      with:
+        name: kivy-android-apk
+        path: bin/*.apk
