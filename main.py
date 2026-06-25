@@ -21,16 +21,19 @@ from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.popup import Popup
-from kivy.uix.filechooser import FileChooserIconView
-from kivy.uix.camera import Camera
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.gridlayout import GridLayout
 from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.utils import get_color_from_hex
 from kivy.graphics import Color, Rectangle, RoundedRectangle
-
+# ==========================================
+# 【核心修复点 1】解决安卓中文白屏
+# ==========================================
+from kivy.core.text import LabelBase
+# 强制将 Roboto 映射为安卓系统字体，支持中文
+if os.path.exists("/system/fonts/DroidSansFallback.ttf"):
+    LabelBase.register(name="Roboto", fn_regular="/system/fonts/DroidSansFallback.ttf")
+    
 # 服务器地址
 SERVER_URL = 'http://206.119.187.73'
 
@@ -518,7 +521,8 @@ class ChatScreen(Screen):
         friends_panel.add_widget(search_box)
 
         # 好友列表
-        Label(text='好友列表', bold=True, size_hint_y=0.04, font_size=dp(12),
+        Llbl_title = Label(text='好友列表', bold=True, size_hint_y=None, height=dp(30), color=get_color_from_hex('#888888'))
+        friends_panel.add_widget(lbl_title),
               color=get_color_from_hex('#888888')).pack(in_=friends_panel)
 
         self.friends_list = BoxLayout(orientation='vertical', spacing=dp(2), size_hint_y=None)
