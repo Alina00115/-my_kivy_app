@@ -520,9 +520,15 @@ class ChatScreen(Screen):
         search_box.add_widget(add_btn)
         friends_panel.add_widget(search_box)
 
-        # 好友列表
-        Llbl_title = Label(text='好友列表', bold=True, size_hint_y=None, height=dp(30), color=get_color_from_hex('#888888'))
-        friends_panel.add_widget(lbl_title),
+        # 好友列表标题 (正确的 Kivy 语法)
+        lbl_title = Label(
+            text='好友列表', 
+            bold=True, 
+            size_hint_y=None, 
+            height=dp(30), 
+            color=get_color_from_hex('#888888')
+        )
+        friends_panel.add_widget(lbl_title)
               color=get_color_from_hex('#888888')).pack(in_=friends_panel)
 
         self.friends_list = BoxLayout(orientation='vertical', spacing=dp(2), size_hint_y=None)
