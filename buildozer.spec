@@ -73,3 +73,6 @@ android.enable_androidx = True
 
 # (bool) If True, then automatically accept SDK license agreements.
 android.accept_sdk_license = True
+
+# 强制开启最高级别的调试日志，把所有隐藏的报错全部打印出来
+log_level = 2
