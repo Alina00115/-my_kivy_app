@@ -7,8 +7,10 @@ SecureChat 手机版 - Kivy版本（完整版）
 import os, json, base64, threading
 from datetime import datetime
 from io import BytesIO
-import requests
-from PIL import Image as PILImage
+# ==========================================
+# 【终极防秒退 1】延迟并隔离可能发生 C 语言断裂的网络库
+# ==========================================
+requests = None
 
 # Kivy imports
 from kivy.app import App
@@ -37,11 +39,9 @@ FONTS_TO_TRY = [
     "/system/fonts/NotoSansCJK-Regular.ttc", # 现代安卓（华为/小米/OPPO）标准中文
     "/system/fonts/NotoSansSC-Regular.ttf"   # 原生安卓中文
 ]
-font_loaded = False
 for fpath in FONTS_TO_TRY:
     if os.path.exists(fpath):
         LabelBase.register(name="Roboto", fn_regular=fpath)
-        font_loaded = True
         break
     
 # 服务器地址
@@ -58,6 +58,14 @@ class APIClient:
         return {'Authorization': f'Bearer {self.token}'} if self.token else {}
 
     def api(self, method, path, data=None, files=None):
+        global requests
+        # 在真正需要发起请求时才懒加载导入，绝对不阻塞冷启动 Loading
+        if requests is None:
+            try:
+                import requests
+            except Exception as e:
+                return {'error': 'Failed to load network module'}
+                
         url = f"{SERVER_URL}{path}"
         try:
             if method == 'GET':
