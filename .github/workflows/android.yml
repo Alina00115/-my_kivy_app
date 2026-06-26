@@ -19,7 +19,9 @@ jobs:
 
     - name: Clean up broken local cache repositories
       run: |
-        # 强力粉碎任何残留的本地旧缓存，腾出干净的空间
+        # 强制粉碎 GitHub 系统自带的、会导致版本冲突的高版本 NDK 干扰源
+        sudo rm -rf /usr/local/lib/android/sdk/ndk/
+        # 强制清洗本地缓存
         rm -rf .buildozer/
         rm -rf bin/
 
