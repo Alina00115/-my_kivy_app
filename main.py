@@ -47,7 +47,6 @@ for fpath in FONTS_TO_TRY:
 # 服务器地址
 SERVER_URL = 'http://206.119.187.73'
 
-
 # ===== API客户端 =====
 class APIClient:
     def __init__(self):
@@ -231,6 +230,8 @@ class LoginScreen(Screen):
             background_color=get_color_from_hex('#f5f5f5'),
             padding=[dp(15), dp(12)], font_size=dp(16)
         )
+        layout.add_widget(self.username)
+        layout.add_widget(self.password)
 
         # 验证码
         captcha_box = BoxLayout(orientation='horizontal', size_hint_y=0.08, spacing=dp(10))
@@ -242,9 +243,6 @@ class LoginScreen(Screen):
         self.captcha_img = Image(size_hint_x=0.4)
         captcha_box.add_widget(self.captcha_input)
         captcha_box.add_widget(self.captcha_img)
-
-        layout.add_widget(self.username)
-        layout.add_widget(self.password)
         layout.add_widget(captcha_box)
 
         # 登录按钮
@@ -260,9 +258,7 @@ class LoginScreen(Screen):
         )
         reg_btn.bind(on_press=lambda x: setattr(self.manager, 'current', 'register'))
         layout.add_widget(reg_btn)
-
         self.add_widget(layout)
-        self.load_captcha()
 
     def start_async_captcha(self, dt):
         # 抛出子线程异步抓取验证码，绝对不卡死安卓渲染主线程
@@ -276,9 +272,9 @@ class LoginScreen(Screen):
             return
 
         self.captcha_id = result.get('id', '')
-            img_base64 = result['img']
-            if ',' in img_base64:
-                img_base64 = img_base64.split(',')[1]
+        img_base64 = result['img']
+        if ',' in img_base64:
+            img_base64 = img_base64.split(',')[-1]
 
         try:
             img_data = base64.b64decode(img_base64)
