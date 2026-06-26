@@ -2,7 +2,7 @@ name: Build Kivy APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "Collision-avoidance-database-and-web-page-query" ]
   workflow_dispatch:
 
 jobs:
@@ -12,16 +12,12 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      # 【核心修复点】添加以下参数，告诉 GitHub 彻底忽略任何本地恶意的或错误的子模块历史，防止收尾时崩溃
       with:
         submodules: false
         persist-credentials: false
 
     - name: Clean up broken local cache repositories
       run: |
-        # 强制粉碎 GitHub 系统自带的、会导致版本冲突的高版本 NDK 干扰源
-        sudo rm -rf /usr/local/lib/android/sdk/ndk/
-        # 强制清洗本地缓存
         rm -rf .buildozer/
         rm -rf bin/
 
@@ -78,13 +74,16 @@ jobs:
         pip install buildozer "cython<3.0.0" virtualenv
 
     - name: Build with Buildozer
+      # 【终极修复点】在这里强制将所有 GitHub 自带的 NDK 环境变量全部清空！
+      env:
+        ANDROID_NDK_HOME: ""
+        ANDROID_NDK_ROOT: ""
+        ANDROID_NDK: ""
       run: |
         buildozer android debug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
-      # 【防爆机制】即使前面有任何非编译性的警告或清理报错，也强制执行上传 APK
-      if: always()
       with:
         name: kivy-android-apk
         path: bin/*.apk
