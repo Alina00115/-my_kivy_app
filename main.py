@@ -26,13 +26,23 @@ from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.utils import get_color_from_hex
 from kivy.graphics import Color, Rectangle, RoundedRectangle
+from kivy.core.image import Image as CoreImage
+
 # ==========================================
-# 【核心修复点 1】解决安卓中文白屏
+# 【防秒退机制 1】强制接入安卓各版本中文字体兼容矩阵
 # ==========================================
 from kivy.core.text import LabelBase
-# 强制将 Roboto 映射为安卓系统字体，支持中文
-if os.path.exists("/system/fonts/DroidSansFallback.ttf"):
-    LabelBase.register(name="Roboto", fn_regular="/system/fonts/DroidSansFallback.ttf")
+FONTS_TO_TRY = [
+    "/system/fonts/DroidSansFallback.ttf",  # 老版本安卓经典中文
+    "/system/fonts/NotoSansCJK-Regular.ttc", # 现代安卓（华为/小米/OPPO）标准中文
+    "/system/fonts/NotoSansSC-Regular.ttf"   # 原生安卓中文
+]
+font_loaded = False
+for fpath in FONTS_TO_TRY:
+    if os.path.exists(fpath):
+        LabelBase.register(name="Roboto", fn_regular=fpath)
+        font_loaded = True
+        break
     
 # 服务器地址
 SERVER_URL = 'http://206.119.187.73'
@@ -196,12 +206,14 @@ class LoginScreen(Screen):
         super().__init__(**kwargs)
         self.captcha_id = ''
         self.build_ui()
+        # 【防秒退机制 2】严禁在初始化时直接卡死调用网络，改为在界面安全亮起 0.5 秒后再去异步加载
+        Clock.schedule_once(self.start_async_captcha, 0.5)
 
     def build_ui(self):
         layout = BoxLayout(orientation='vertical', padding=dp(30), spacing=dp(12))
 
         # 标题
-        layout.add_widget(Label(text='💜 心觅', font_size=dp(32), size_hint_y=0.12,
+        layout.add_widget(Label(text='心觅', font_size=dp(32), size_hint_y=0.12,
                                 color=get_color_from_hex('#667eea'), bold=True))
         layout.add_widget(Label(text='安全即时通讯', font_size=dp(14), size_hint_y=0.05,
                                 color=get_color_from_hex('#888888')))
@@ -252,20 +264,41 @@ class LoginScreen(Screen):
         self.add_widget(layout)
         self.load_captcha()
 
-    def load_captcha(self):
-        def _load(dt):
-            result = api.captcha()
-            if 'id' in result:
-                self.captcha_id = result['id']
-                try:
-                    img_data = base64.b64decode(result['img'])
-                    from kivy.core.image import Image as CoreImage
-                    core_img = CoreImage(BytesIO(img_data), ext='png')
-                    self.captcha_img.texture = core_img.texture
-                except:
-                    pass
+    def start_async_captcha(self, dt):
+        # 抛出子线程异步抓取验证码，绝对不卡死安卓渲染主线程
+        threading.Thread(target=self.bg_load_captcha, daemon=True).start()
 
-        Clock.schedule_once(_load, 0.1)
+    def bg_load_captcha(self):
+        result = api.captcha()
+        # 【防秒退机制 3】加入熔断器。如果网络不通或报错，绝不执行后续画图，改为安全弹窗警告
+        if not result or 'error' in result or 'img' not in result:
+            Clock.schedule_once(lambda dt: self.show_error_popup("网络连接失败，请检查服务器或手机网络。"), 0)
+            return
+
+        self.captcha_id = result.get('id', '')
+            img_base64 = result['img']
+            if ',' in img_base64:
+                img_base64 = img_base64.split(',')[1]
+
+        try:
+            img_data = base64.b64decode(img_base64)
+            # 在主线程安全更新UI纹理
+            Clock.schedule_once(lambda dt: self.update_captcha_ui(img_data), 0)
+        except Exception:
+            pass
+
+    def update_captcha_ui(self, img_data):
+        try:
+            data = BytesIO(img_data)
+            ext = 'png'
+            core_img = CoreImage(data, ext=ext)
+            self.captcha_img.texture = core_img.texture
+        except Exception:
+            pass
+
+    def show_error_popup(self, text):
+        popup = Popup(title='提示', content=Label(text=text), size_hint=(0.8, 0.3))
+        popup.open()
 
     def do_login(self, instance):
         def _login(dt):
@@ -755,7 +788,6 @@ class VideoCallScreen(Screen):
 # ===== 主应用 =====
 class SecureChatKivyApp(App):
     title = '心觅'
-
     def build(self):
         Window.clearcolor = (1, 1, 1, 1)
         sm = ScreenManager()
