@@ -76,3 +76,6 @@ android.accept_sdk_license = True
 
 # 强制开启最高级别的调试日志，把所有隐藏的报错全部打印出来
 log_level = 2
+
+# (str) Extra attributes to add to the <application> tag in AndroidManifest.xml
+android.manifest_attributes = android:usesCleartextTraffic="true"
